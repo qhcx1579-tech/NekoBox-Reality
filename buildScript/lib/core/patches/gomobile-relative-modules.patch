@@ -1,0 +1,23 @@
+diff --git a/cmd/gomobile/bind.go b/cmd/gomobile/bind.go
+--- a/cmd/gomobile/bind.go
++++ b/cmd/gomobile/bind.go
+@@ -326,6 +326,19 @@ func writeGoMod(dir, targetPlatform, targetArch string) error {
+ 		if f == nil {
+ 			return nil
+ 		}
++		// Keep local checkout paths out of the resulting Go build metadata.
++		for _, replacement := range f.Replace {
++			if replacement.New.Version == "" && filepath.IsAbs(replacement.New.Path) {
++				relative, err := filepath.Rel(dir, replacement.New.Path)
++				if err != nil {
++					return fmt.Errorf("module and build directory must share a volume: %w", err)
++				}
++				relative = "./" + filepath.ToSlash(relative)
++				if err := f.AddReplace(replacement.Old.Path, replacement.Old.Version, relative, ""); err != nil {
++					return err
++				}
++			}
++		}
+ 		bs, err := f.Format()
+ 		if err != nil {
+ 			return err

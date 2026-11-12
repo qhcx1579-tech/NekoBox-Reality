@@ -1,0 +1,47 @@
+*.iml
+.gradle
+.kotlin/
+.idea
+.vscode
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/app/libs/
+/app/executableSo/
+/app/src/main/assets/sing-box
+/service_account_credentials.json
+jniLibs/
+/library/libcore_build/
+.idea/deploymentTargetDropDown.xml
+/nkmr
+
+# submodules
+/external
+
+# Local signing material and credentials (keep existing upstream history intact).
+/tools/
+/output/
+/signing/
+*.p12
+*.pfx
+*.jks
+*.keystore
+**/signing/password.xml
+keystore.properties
+signing.properties
+.env
+.env.*
+!.env.example
+*.log
+*.apk
+*.aab
+*.idsig
+
+# Local working notes and private review material.
+/文件说明.md
+/XHTTP设计.md
+/XHTTP使用说明.md
+/private-audit/

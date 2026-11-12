@@ -1,0 +1,65 @@
+diff --git a/common/tls/reality_client.go b/common/tls/reality_client.go
+index d056966c..4bdba3af 100644
+--- a/common/tls/reality_client.go
++++ b/common/tls/reality_client.go
+@@ -115,18 +115,7 @@ func (e *RealityClientConfig) ClientHandshake(ctx context.Context, conn net.Conn
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	for _, extension := range uConn.Extensions {
+-		if ce, ok := extension.(*utls.SupportedCurvesExtension); ok {
+-			ce.Curves = common.Filter(ce.Curves, func(curveID utls.CurveID) bool {
+-				return curveID != utls.X25519MLKEM768
+-			})
+-		}
+-		if ks, ok := extension.(*utls.KeyShareExtension); ok {
+-			ks.KeyShares = common.Filter(ks.KeyShares, func(share utls.KeyShare) bool {
+-				return share.Group != utls.X25519MLKEM768
+-			})
+-		}
+-	}
++	prepareRealityKeyShares(uConn.Extensions)
+ 	err = uConn.BuildHandshakeState()
+ 	if err != nil {
+ 		return nil, err
+@@ -211,6 +200,40 @@ func (e *RealityClientConfig) ClientHandshake(ctx context.Context, conn net.Conn
+ 	return &realityClientConnWrapper{uConn}, nil
+ }
+ 
++// Preserve hybrid key exchange when the fingerprint supplies both extensions.
++// New REALITY servers require this share before the optional plain X25519 share.
++// Removing an incomplete pair preserves compatibility with legacy fingerprints.
++func prepareRealityKeyShares(extensions []utls.TLSExtension) {
++	var hasGroup, hasShare bool
++	for _, extension := range extensions {
++		switch ext := extension.(type) {
++		case *utls.SupportedCurvesExtension:
++			for _, group := range ext.Curves {
++				hasGroup = hasGroup || group == utls.X25519MLKEM768
++			}
++		case *utls.KeyShareExtension:
++			for _, share := range ext.KeyShares {
++				hasShare = hasShare || share.Group == utls.X25519MLKEM768
++			}
++		}
++	}
++	if hasGroup && hasShare {
++		return
++	}
++	for _, extension := range extensions {
++		switch ext := extension.(type) {
++		case *utls.SupportedCurvesExtension:
++			ext.Curves = common.Filter(ext.Curves, func(group utls.CurveID) bool {
++				return group != utls.X25519MLKEM768
++			})
++		case *utls.KeyShareExtension:
++			ext.KeyShares = common.Filter(ext.KeyShares, func(share utls.KeyShare) bool {
++				return share.Group != utls.X25519MLKEM768
++			})
++		}
++	}
++}
++
+ func realityClientFallback(ctx context.Context, uConn net.Conn, serverName string, fingerprint utls.ClientHelloID) {
+ 	defer uConn.Close()
+ 	client := &http.Client{
