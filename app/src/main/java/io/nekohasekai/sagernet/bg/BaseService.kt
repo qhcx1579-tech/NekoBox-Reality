@@ -139,6 +139,18 @@ class BaseService {
             callbacks.unregister(cb)
         }
 
+        override fun queryExitIP(): String {
+            check(data?.state == State.Connected) { "exit_ip_proxy_unavailable" }
+            try {
+                return Libcore.queryExitIP(data?.proxy?.box ?: error("exit_ip_proxy_unavailable"))
+            } catch (e: Exception) {
+                val code = listOf("exit_ip_reality_failed", "exit_ip_timeout",
+                    "exit_ip_invalid_response", "exit_ip_proxy_unavailable")
+                    .firstOrNull { e.message.orEmpty().contains(it) } ?: "exit_ip_service_error"
+                error(code)
+            }
+        }
+
         override fun urlTest(): Int {
             if (data?.proxy?.box == null) {
                 error("core not started")

@@ -9,8 +9,8 @@ param(
     [string]$MobileBin,
     [string]$OutputDirectory,
     [string]$SigningDirectory,
-    [string]$VersionName = '1.4.2-reality-6',
-    [int]$VersionCode = 235
+    [string]$VersionName = '1.4.2-reality-11',
+    [int]$VersionCode = 240
 )
 
 $ErrorActionPreference = 'Stop'
@@ -78,6 +78,7 @@ if (!$SkipCore) {
     $env:TMP = $env:GOTMPDIR
     Push-Location "$PSScriptRoot/libcore"
     try {
+        Invoke-Checked $go @('test', '-count=1', 'exit_ip_http.go', 'exit_ip_parse.go', 'exit_ip_test.go')
         Invoke-Checked "$MobileBin/gomobile.exe" @('bind', '-target=android/arm64',
             '-androidapi', '21', '-trimpath', '-ldflags=-s -w',
             '-tags=with_conntrack,with_gvisor,with_quic,with_wireguard,with_utls,with_clash_api',

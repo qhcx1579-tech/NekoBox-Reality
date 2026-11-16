@@ -416,4 +416,14 @@
     <string name="backup_summary">如果路由規則不與設定檔一起備份，則自訂出站將丟失。</string>
     <string name="backup_not_file">不是一個備份檔案，預計 .json，但 %s</string>
     <string name="packet_encoding">封包編碼</string>
+    <string name="exit_ip_action">查看代理出口 IP · IPPure</string>
+    <string name="exit_ip_title">代理出口 IP</string>
+    <string name="exit_ip_privacy">透過所選代理，以 HTTPS 向 IPPure 查詢。IPPure 會看到本次連線的出口 IP。結果不儲存或寫入日誌。其他流量可能遵循不同分流規則。</string>
+    <string name="exit_ip_query">查詢</string>
+    <string name="exit_ip_loading">正在查詢代理出口 IP… · IPPure</string>
+    <string name="exit_ip_result">代理出口 IP：%1$s\n%2$s · 來源：IPPure · 點擊重新查詢</string>
+    <string name="exit_ip_failed">IP 查詢失敗 · 點擊重試 · IPPure</string>
+    <string name="exit_ip_reality_failed">IP 查詢失敗：代理 REALITY 身分驗證失敗</string>
+    <string name="exit_ip_timeout">IP 查詢逾時 · 點擊重試</string>
+    <string name="exit_ip_invalid_response">IPPure 回傳資料異常 · 點擊重試</string>
 </resources>

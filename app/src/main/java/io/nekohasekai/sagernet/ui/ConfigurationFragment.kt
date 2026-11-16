@@ -907,44 +907,36 @@ class ConfigurationFragment @JvmOverloads constructor(
         var selectedGroupIndex = 0
         var groupList: ArrayList<ProxyGroup> = ArrayList()
         var groupFragments: HashMap<Long, GroupFragment> = HashMap()
+        private val reloadGeneration = AtomicInteger()
 
-        fun reload(now: Boolean = false) {
-
-            if (!select) {
-                groupPager.unregisterOnPageChangeCallback(updateSelectedCallback)
-            }
-
+        fun reload(now: Boolean = false, targetGroupId: Long? = null) {
+            val generation = reloadGeneration.incrementAndGet()
             runOnDefaultDispatcher {
                 var newGroupList = ArrayList(SagerDatabase.groupDao.allGroups())
                 if (newGroupList.isEmpty()) {
                     SagerDatabase.groupDao.createGroup(ProxyGroup(ungrouped = true))
                     newGroupList = ArrayList(SagerDatabase.groupDao.allGroups())
                 }
-                newGroupList.find { it.ungrouped }?.let {
-                    if (SagerDatabase.proxyDao.countByGroup(it.id) == 0L) {
-                        newGroupList.remove(it)
-                    }
-                }
-
-                var selectedGroup = selectedItem?.groupId ?: DataStore.currentGroupId()
-                var set = false
-                if (selectedGroup > 0L) {
-                    selectedGroupIndex = newGroupList.indexOfFirst { it.id == selectedGroup }
-                    set = true
-                } else if (groupList.size == 1) {
-                    selectedGroup = groupList[0].id
-                    if (DataStore.selectedGroup != selectedGroup) {
-                        DataStore.selectedGroup = selectedGroup
-                    }
-                }
+                val emptyDefaultId = newGroupList.find {
+                    it.ungrouped && SagerDatabase.proxyDao.countByGroup(it.id) == 0L
+                }?.id
+                val selectedGroup = targetGroupId ?: selectedItem?.groupId ?: DataStore.currentGroupId()
+                val page = groupPagerState(newGroupList, selectedGroup, emptyDefaultId,
+                    { it.id }, { it.ungrouped })
 
                 val runFunc = if (now) activity?.let { it::runOnUiThread } else groupPager::post
                 if (runFunc != null) {
-                    runFunc {
-                        groupList = newGroupList
+                    runFunc update@{
+                        if (reloadGeneration.get() != generation || this@ConfigurationFragment.view == null) return@update
+                        if (!select) groupPager.unregisterOnPageChangeCallback(updateSelectedCallback)
+                        groupList = ArrayList(page.groups)
+                        selectedGroupIndex = page.selectedIndex
                         notifyDataSetChanged()
-                        if (set) groupPager.setCurrentItem(selectedGroupIndex, false)
-                        val hideTab = groupList.size < 2
+                        if (groupList.isNotEmpty()) {
+                            groupPager.setCurrentItem(selectedGroupIndex, false)
+                            if (!select) DataStore.selectedGroup = groupList[selectedGroupIndex].id
+                        }
+                        val hideTab = !page.showTabs
                         tabLayout.isGone = hideTab
                         toolbar.elevation = if (hideTab) 0F else dp2px(4).toFloat()
                         if (!select) {
@@ -982,26 +974,11 @@ class ConfigurationFragment @JvmOverloads constructor(
         }
 
         override suspend fun groupAdd(group: ProxyGroup) {
-            tabLayout.post {
-                groupList.add(group)
-
-                if (groupList.any { !it.ungrouped }) tabLayout.post {
-                    tabLayout.visibility = View.VISIBLE
-                }
-
-                notifyItemInserted(groupList.size - 1)
-                tabLayout.getTabAt(groupList.size - 1)?.select()
-            }
+            reload(targetGroupId = group.id)
         }
 
         override suspend fun groupRemoved(groupId: Long) {
-            val index = groupList.indexOfFirst { it.id == groupId }
-            if (index == -1) return
-
-            tabLayout.post {
-                groupList.removeAt(index)
-                notifyItemRemoved(index)
-            }
+            reload()
         }
 
         override suspend fun groupUpdated(group: ProxyGroup) {
